@@ -1,0 +1,17 @@
+{
+  "name": "git-collab",
+  "version": "0.2.0",
+  "private": true,
+  "packageManager": "pnpm@8.14.0",
+  "engines": { "node": ">=22.19.0 <23 || >=24" },
+  "scripts": {
+    "dev:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-windows.ps1",
+    "package:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1",
+    "dev:macos": "bash scripts/macos.sh dev",
+    "build:macos": "bash scripts/macos.sh build",
+    "dev:desktop": "corepack pnpm@8.14.0 --fail-if-no-match --filter @git-collab/desktop tauri dev",
+    "build:desktop": "corepack pnpm@8.14.0 --fail-if-no-match --filter @git-collab/desktop tauri build -- --locked",
+    "build": "corepack pnpm@8.14.0 --recursive build",
+    "test": "corepack pnpm@8.14.0 --recursive test"
+  }
+}

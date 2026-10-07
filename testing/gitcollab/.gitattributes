@@ -1,0 +1,3 @@
+# Keep Unix entry points usable in Windows checkouts without global Git changes.
+*.sh text eol=lf
+*.yml text eol=lf

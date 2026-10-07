@@ -1,0 +1,29 @@
+# Credentials and application state
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+运行数据/
+# Local dependencies, toolchains and outputs
+node_modules/
+.pnpm-store/
+.tools/
+target/
+dist/
+releases/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+coverage/
+*.tsbuildinfo
+# Local validation evidence
+.superpowers/brainstorm/*/state/
+spike-evidence/
+playwright-report/
+test-results/
+*.log
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

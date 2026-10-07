@@ -1,0 +1,110 @@
+name: Git Collab platform acceptance
+on:
+  push:
+    branches: ['codex/gitcollab-platform-*']
+    paths: ['testing/gitcollab/**', '.github/workflows/gitcollab-platform.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: gitcollab-platform-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  acceptance:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: windows
+          - os: macos-latest
+            label: macos-arm
+          - os: macos-15-intel
+            label: macos-intel
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: testing/gitcollab
+    env:
+      COREPACK_HOME: ${{ runner.temp }}/gitcollab-corepack
+      CARGO_HOME: ${{ runner.temp }}/gitcollab-cargo
+      RUSTUP_HOME: ${{ runner.temp }}/gitcollab-rustup
+      RUSTUP_TOOLCHAIN: '1.95.0'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/testing/gitcollab/target
+      EVIDENCE: ${{ runner.temp }}/gitcollab-evidence
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Prepare isolated toolchain and dependencies
+        run: |
+          mkdir -p "$EVIDENCE"
+          git --version | tee "$EVIDENCE/git-version.log"
+          node -e 'const v=require("child_process").execFileSync("git",["--version"],{encoding:"utf8"}).match(/(\d+)\.(\d+)\.(\d+)/);if(!v||+v[1]<2||(+v[1]===2&&+v[2]<51))throw Error("System Git 2.51+ is required")'
+          rustup toolchain install 1.95.0 --profile minimal --component rustfmt
+          cargo --version | tee "$EVIDENCE/rust-version.log"
+          corepack pnpm@8.14.0 --version
+          corepack pnpm@8.14.0 install --frozen-lockfile
+      - name: Core, Store, native and UI regressions
+        run: |
+          set -o pipefail
+          cargo fmt --all -- --check
+          cargo test --workspace --locked -- --test-threads=4 2>&1 | tee "$EVIDENCE/rust-tests.log"
+          cargo check --workspace --all-targets --locked 2>&1 | tee "$EVIDENCE/rust-check.log"
+          corepack pnpm@8.14.0 test 2>&1 | tee "$EVIDENCE/ui-tests.log"
+          corepack pnpm@8.14.0 build 2>&1 | tee "$EVIDENCE/frontend-build.log"
+          git diff --check
+      - name: Windows production executable
+        if: runner.os == 'Windows'
+        env:
+          RUSTFLAGS: '-C target-feature=+crt-static'
+        run: |
+          set -o pipefail
+          corepack pnpm@8.14.0 --filter @git-collab/desktop tauri build --no-bundle -- --locked 2>&1 | tee "$EVIDENCE/native-build.log"
+      - name: macOS production app
+        if: runner.os == 'macOS'
+        run: |
+          set -o pipefail
+          bash scripts/macos.sh build 2>&1 | tee "$EVIDENCE/native-build.log"
+      - name: Isolated production startup
+        env:
+          GITCOLLAB_DATA_DIR: ${{ runner.temp }}/gitcollab-startup-data
+          GITCOLLAB_TEST_REPORT: ${{ runner.temp }}/gitcollab-evidence/desktop-startup.log
+        run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            node scripts/smoke-desktop.cjs target/release/git-collab-desktop.exe
+          else
+            binary=$(find target/release/bundle/macos -type f -path '*.app/Contents/MacOS/git-collab-desktop' -print -quit)
+            test -n "$binary"
+            node scripts/smoke-desktop.cjs "$binary"
+          fi
+      - name: Record native build fingerprints
+        run: |
+          node scripts/native-fingerprints.cjs "$EVIDENCE/native-fingerprints.json"
+      - name: Explicit live GitHub collaboration acceptance
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITCOLLAB_DATA_DIR: ${{ runner.temp }}/gitcollab-live-data
+          GITCOLLAB_TEST_REPORT: ${{ runner.temp }}/gitcollab-evidence/github-smoke.json
+        run: |
+          set -o pipefail
+          cargo build --locked -p collaboration-core --example github_smoke
+          if [[ "$RUNNER_OS" == macOS ]]; then
+            PATH=/usr/bin:/bin:/usr/sbin:/sbin target/debug/examples/github_smoke --live-github "$GITHUB_REF_NAME" "codex/gitcollab-smoke-${{ matrix.label }}-${{ github.run_id }}-${{ github.run_attempt }}" 2>&1 | tee "$EVIDENCE/github-smoke.log"
+          else
+            target/debug/examples/github_smoke.exe --live-github "$GITHUB_REF_NAME" "codex/gitcollab-smoke-${{ matrix.label }}-${{ github.run_id }}-${{ github.run_attempt }}" 2>&1 | tee "$EVIDENCE/github-smoke.log"
+          fi
+      - name: Preserve logs and acceptance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitcollab-${{ matrix.label }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gitcollab-evidence/
+          if-no-files-found: error
+          retention-days: 14
