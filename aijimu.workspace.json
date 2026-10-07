@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "rolePaths": {
+    "product": [
+      "gitcollab-smoke/product"
+    ],
+    "frontend": [
+      "gitcollab-smoke/frontend"
+    ],
+    "backend": [
+      "gitcollab-smoke/backend"
+    ],
+    "testing": [
+      "gitcollab-smoke/testing"
+    ],
+    "skills": [
+      "gitcollab-smoke/skills"
+    ]
+  }
+}
