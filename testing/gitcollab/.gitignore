@@ -9,6 +9,7 @@
 node_modules/
 .pnpm-store/
 .tools/
+.ci/
 target/
 dist/
 releases/

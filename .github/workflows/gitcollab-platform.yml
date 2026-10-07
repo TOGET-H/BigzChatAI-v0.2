@@ -28,12 +28,12 @@ jobs:
         shell: bash
         working-directory: testing/gitcollab
     env:
-      COREPACK_HOME: ${{ runner.temp }}/gitcollab-corepack
-      CARGO_HOME: ${{ runner.temp }}/gitcollab-cargo
-      RUSTUP_HOME: ${{ runner.temp }}/gitcollab-rustup
+      COREPACK_HOME: ${{ github.workspace }}/testing/gitcollab/.ci/corepack
+      CARGO_HOME: ${{ github.workspace }}/testing/gitcollab/.ci/cargo
+      RUSTUP_HOME: ${{ github.workspace }}/testing/gitcollab/.ci/rustup
       RUSTUP_TOOLCHAIN: '1.95.0'
       CARGO_TARGET_DIR: ${{ github.workspace }}/testing/gitcollab/target
-      EVIDENCE: ${{ runner.temp }}/gitcollab-evidence
+      EVIDENCE: ${{ github.workspace }}/gitcollab-evidence
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,7 +75,7 @@ jobs:
       - name: Isolated production startup
         env:
           GITCOLLAB_DATA_DIR: ${{ runner.temp }}/gitcollab-startup-data
-          GITCOLLAB_TEST_REPORT: ${{ runner.temp }}/gitcollab-evidence/desktop-startup.log
+          GITCOLLAB_TEST_REPORT: ${{ github.workspace }}/gitcollab-evidence/desktop-startup.log
         run: |
           if [[ "$RUNNER_OS" == Windows ]]; then
             node scripts/smoke-desktop.cjs target/release/git-collab-desktop.exe
@@ -91,7 +91,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITCOLLAB_DATA_DIR: ${{ runner.temp }}/gitcollab-live-data
-          GITCOLLAB_TEST_REPORT: ${{ runner.temp }}/gitcollab-evidence/github-smoke.json
+          GITCOLLAB_TEST_REPORT: ${{ github.workspace }}/gitcollab-evidence/github-smoke.json
         run: |
           set -o pipefail
           cargo build --locked -p collaboration-core --example github_smoke
@@ -105,6 +105,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gitcollab-${{ matrix.label }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/gitcollab-evidence/
+          path: ${{ github.workspace }}/gitcollab-evidence/
           if-no-files-found: error
           retention-days: 14
