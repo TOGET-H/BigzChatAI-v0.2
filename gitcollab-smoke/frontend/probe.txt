@@ -1,0 +1,3 @@
+Git Collab public smoke fixture
+os=windows
+phase=local
