@@ -58,6 +58,11 @@ src/
 
 ## 🚀 快速开始
 
+### 环境要求
+
+- Node.js `^20.19.0` 或 `>=22.12.0`（与 `package.json` 中的 `engines.node` 保持一致）
+- npm（随 Node.js 安装）
+
 ### 安装依赖
 
 ```bash
