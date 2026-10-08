@@ -17,6 +17,7 @@ function handleClick(suggestion: string) {
     <button
       v-for="item in suggestions"
       :key="item"
+      type="button"
       class="suggest-chip"
       @click="handleClick(item)"
     >
